@@ -192,8 +192,6 @@ class OllamaLogger {
                     } else {
                         print("\(role): \(content)\n")
                     }
-//                } else if let content = jsonObject.messages.array.last?.content.string {
-//                    print(content)
                 } else {
                     Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
                 }
@@ -239,25 +237,36 @@ class OllamaLogger {
                     Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
                 }
             }
-//        } else {
-//            if url == "/api/version" {
-//                if let version = jsonObject["version"] as? String {
-//                    print(version)
-//                }
-//            } else if url == "/api/tags" {
-//                if let models = jsonObject["models"] as? [[String: Any]] {
-//                    print("\(models.count) models returned")
-//                }
-//            } else {
-//                if let message = jsonObject["message"] as? [String: Any], let done = jsonObject["done"] as? Bool, !done {
-//                    if let content = message["thinking"] as? String {
-//                        print(content, terminator: "")
-//                    }
-//                    if let content = message["content"] as? String {
-//                        print(content, terminator: "")
-//                    }
-//                }
-//            }
+        } else {
+            if isRequest {
+                if let message = jsonObject.messages.array.last(where: { $0.content.string.isEmpty == false }) {
+                    let role = message.role.string
+                    let content = message.content.string
+                    print("\(role): \(content)\n")
+                } else {
+                    Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
+                }
+            } else {
+                if url == "/api/version" {
+                    if let version = jsonObject.version.optionalString {
+                        print(version)
+                    }
+                } else if url == "/api/tags" {
+                    if let models = jsonObject.models.optionalArray {
+                        print("\(models.count) models returned")
+                    }
+                } else if url == "/api/chat" {
+                    let message = jsonObject.message
+                    if let content = message.thinking.optionalString {
+                        print(content, terminator: "")
+                    }
+                    if let content = message.content.optionalString {
+                        print(content, terminator: "")
+                    }
+                } else {
+                    Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
+                }
+            }
         }
     }
 
