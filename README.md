@@ -1,4 +1,4 @@
-# APIProxy
+# Swift OllamaProxy
 
-A project to visualise the HTTP calls to an API with the goal of mocking the API responses.
-Created as my first Vapor project with assistance from AI tools, this application may not adhere strictly to all Vapor App standards but serves as a practical starting point for those interested in building similar solutions.
+A project to capture and log the HTTP calls to the Ollama API with the goal of understanding agent interactions better.
+Based on my APIProxy project (which was created as my first Vapor project).

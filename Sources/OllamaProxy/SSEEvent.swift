@@ -1,6 +1,6 @@
 //
 //  SSEEvent.swift
-//  APIProxy
+//  OllamaProxy
 //
 //  Created by Philipp on 07.12.2025.
 //

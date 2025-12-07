@@ -1,6 +1,6 @@
 //
 //  CallbackHTTPClientDelegate.swift
-//  APIProxy
+//  OllamaProxy
 //
 //  Created by Philipp on 09.04.2025.
 //

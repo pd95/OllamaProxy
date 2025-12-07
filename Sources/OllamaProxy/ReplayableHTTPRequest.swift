@@ -1,6 +1,6 @@
 //
 //  ReplayableHTTPRequest.swift
-//  APIProxy
+//  OllamaProxy
 //
 //  Created by Philipp on 11.04.2025.
 //

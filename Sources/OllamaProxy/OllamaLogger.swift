@@ -1,6 +1,6 @@
 //
 //  OllamaLogger.swift
-//  APIProxy
+//  OllamaProxy
 //
 //  Created by Philipp on 06.12.2025.
 //

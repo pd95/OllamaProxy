@@ -1,10 +1,10 @@
-// swift-tools-version:6.0
+// swift-tools-version:6.2
 import PackageDescription
 
 let package = Package(
-    name: "APIProxy",
+    name: "OllamaProxy",
     platforms: [
-       .macOS(.v13)
+        .macOS(.v13), .iOS(.v16)
     ],
     dependencies: [
         // 💧 A server-side Swift web framework.
@@ -20,15 +20,7 @@ let package = Package(
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
             ],
-            path: "Sources/APIProxy",
-            swiftSettings: swiftSettings
-        ),
-        .testTarget(
-            name: "APIProxyTests",
-            dependencies: [
-                .target(name: "App"),
-                .product(name: "VaporTesting", package: "vapor"),
-            ],
+            path: "Sources/OllamaProxy",
             swiftSettings: swiftSettings
         )
     ]

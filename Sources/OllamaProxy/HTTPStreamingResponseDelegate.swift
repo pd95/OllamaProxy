@@ -1,6 +1,6 @@
 //
 //  HTTPStreamingResponseDelegate.swift
-//  APIProxy
+//  OllamaProxy
 //
 //  Created by Philipp on 20.04.2025.
 //
