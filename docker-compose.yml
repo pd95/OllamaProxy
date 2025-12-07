@@ -15,10 +15,11 @@
 
 x-shared_environment: &shared_environment
   LOG_LEVEL: ${LOG_LEVEL:-debug}
-  
+  TARGET_URL: "http://host.docker.internal:11434"
+
 services:
   app:
-    image: a-p-i-proxy:latest
+    image: ollama-proxy:latest
     build:
       context: .
     environment:
