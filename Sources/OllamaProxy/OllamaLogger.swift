@@ -187,8 +187,12 @@ class OllamaLogger {
                     let role = message.role.string
                     let content = message.content.string
                     if role == "tool" {
-                        let output = (try? AnyJSON(string: content))?.output.string ?? "<couldn't parse output>"
-                        print("🛠️ tool call output (\(message.tool_call_id.string)) -------------------- 8< --------------------\n\(output)\n🛠️ (\(message.tool_call_id.string)) --------------------8<--------------------")
+                        print("🛠️ tool call output (\(message.tool_call_id.string)) -------------------- 8< --------------------")
+                        let dict = (try? AnyJSON(string: content))?.dictionary ?? [:]
+                        for (key, value) in dict {
+                            print("\(key): \(value.optionalString ?? "n/a")")
+                        }
+                        print("🛠️ (\(message.tool_call_id.string)) --------------------8<--------------------")
                     } else {
                         print("\(role): \(content)\n")
                     }
