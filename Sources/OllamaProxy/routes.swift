@@ -1,8 +1,7 @@
 import Vapor
 
-func routes(_ app: Application) throws {
+func routes(_ app: Application, proxyService: ProxyService) throws {
     // Capture and forward requests to the specified target host and port.
-    let proxyService = app.proxyService
     app.on(.HEAD, "", use: proxyService.forwardRequest)
     app.on(.GET, .catchall, use: proxyService.forwardRequest)
     app.on(.POST, .catchall, use: proxyService.forwardRequest)

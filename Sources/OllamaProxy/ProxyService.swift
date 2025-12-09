@@ -6,9 +6,9 @@ struct ProxyService: LifecycleHandler {
     let httpClient: HTTPClient
     let baseURL: String
 
-    init(app: Application) {
+    init(app: Application, baseURL: String = "http://localhost:11434") {
         self.httpClient = HTTPClient(eventLoopGroupProvider: .shared(app.eventLoopGroup))
-        self.baseURL = Environment.get("TARGET_URL") ?? "http://localhost:11434"
+        self.baseURL = baseURL
     }
 
     func willBoot(_ app: Application) throws {

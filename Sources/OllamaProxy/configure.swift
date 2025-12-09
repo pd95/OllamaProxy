@@ -6,15 +6,16 @@ public func configure(_ app: Application) async throws {
     app.http.server.configuration.hostname = Environment.get("HOST") ?? "127.0.0.1"
     app.http.server.configuration.port = Environment.get("PORT").flatMap(Int.init) ?? 8080
 
-    // Register ProxyService lifecycle handler
-    app.lifecycle.use(app.proxyService)
+    // Create & register ProxyService lifecycle handler
+    let proxy = ProxyService(app: app, baseURL: Environment.get("TARGET_URL") ?? "http://localhost:11434")
+    app.lifecycle.use(proxy)
 
     // Compression
     app.http.server.configuration.responseCompression = .enabled
     app.http.server.configuration.requestDecompression = .enabled
 
     // register routes
-    try routes(app)
+    try routes(app, proxyService: proxy)
 
     // Configure upper limit for body
     app.routes.defaultMaxBodySize = "1mb"
