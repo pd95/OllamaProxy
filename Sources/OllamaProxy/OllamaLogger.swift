@@ -259,6 +259,13 @@ class OllamaLogger {
                     if let models = jsonObject.models.optionalArray {
                         print("\(models.count) models returned")
                     }
+                } else if url == "/api/generate" {
+                    if let content = jsonObject.thinking.optionalString {
+                        print(content, terminator: "")
+                    }
+                    if let content = jsonObject.response.optionalString {
+                        print(content, terminator: "")
+                    }
                 } else if url == "/api/chat" {
                     let message = jsonObject.message
                     if let content = message.thinking.optionalString {
