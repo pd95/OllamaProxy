@@ -40,6 +40,7 @@ class OllamaLogger {
     private var contentType: HTTPMediaType = .plainText
     private var partialBuffer = ByteBuffer()
     private var needsNewline: Bool = false
+    private var isStreaming: Bool = false
     private var streamMode: StreamOutputMode = .none
 
     init(method: String, uri: String) {
@@ -201,6 +202,9 @@ class OllamaLogger {
 
         if isOpenAICompatibility {
             if isRequest {
+                let model = jsonObject.model.optionalString.map({ " model: \($0)" }) ?? ""
+                isStreaming = jsonObject.stream.bool
+                print("📩 --- \(url)\(model)\(isStreaming ? " (streaming)" : "") ---")
                 if let prompt = jsonObject.prompt.optionalString {
                     print(prompt)
                 } else if let message = jsonObject.messages.array.last {
@@ -265,6 +269,9 @@ class OllamaLogger {
             }
         } else {
             if isRequest {
+                let model = jsonObject.model.optionalString.map({ " model: \($0)" }) ?? ""
+                isStreaming = jsonObject.stream.bool
+                print("📩 --- \(url)\(model)\(isStreaming ? " (streaming)" : "") ---")
                 if let message = jsonObject.messages.array.last(where: { $0.content.string.isEmpty == false }) {
                     let role = message.role.string
                     let content = message.content.string
