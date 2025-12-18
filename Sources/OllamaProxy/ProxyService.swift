@@ -5,6 +5,7 @@ import Vapor
 struct ProxyService: LifecycleHandler {
     let httpClient: HTTPClient
     let baseURL: String
+    var writeFile = false
 
     init(app: Application, baseURL: String = "http://localhost:11434") {
         self.httpClient = HTTPClient(eventLoopGroupProvider: .shared(app.eventLoopGroup))
@@ -70,6 +71,25 @@ struct ProxyService: LifecycleHandler {
                     logger.trace("Request successfully processed. Response returned \(response.bodyChunks.count) chunks in \(duration)")
                 } else {
                     logger.warning("Request successfully processed, but no response recorded!")
+                }
+
+
+                if writeFile {
+                    do {
+                        let data = try JSONEncoder().encode(replayableRequest)
+
+                        let tempDirectoryURL = FileManager.default.temporaryDirectory
+                        let timestamp = Date.now.formatted(.iso8601.timeZoneSeparator(.omitted).dateTimeSeparator(.standard).timeSeparator(.omitted))
+                        let fileName = "OllamaProxy-request-\(timestamp).json"
+                        let fileURL = tempDirectoryURL.appendingPathComponent(fileName)
+
+                        // Write data to the file at the specified URL
+                        try data.write(to: fileURL)
+
+                        logger.info("replayable request written to \(fileURL.path(percentEncoded: false))")
+                    } catch {
+                        logger.error("Failed to write file: \(error.localizedDescription)")
+                    }
                 }
             } catch {
                 logger.error("Request failed: \(error)")
