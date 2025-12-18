@@ -218,7 +218,7 @@ class OllamaLogger {
                             print("🛠️ tool call output (\(message.tool_call_id.string)) -------------------- 8< --------------------")
                             let dict = (try? AnyJSON(string: content))?.dictionary ?? [:]
                             for (key, value) in dict {
-                                print("\(key): \(value.optionalString ?? "n/a")")
+                                print("  \(key): \(value.optionalString ?? "n/a")")
                             }
                             print("🛠️ (\(message.tool_call_id.string)) --------------------8<--------------------")
                         } else {
@@ -232,8 +232,33 @@ class OllamaLogger {
                                     }
                                     print("")
                                 }
+                            } else if let content = message.content.optionalString {
+                                print(content)
+                                print("")
+                            } else if let toolCalls = message.tool_calls.optionalArray {
+                                for toolCall in toolCalls {
+                                    let type = toolCall.function.name.string
+                                    var arguments = toolCall.function.arguments.string
+                                    if type == "shell" {
+                                        if let parsedArguments = (try? AnyJSON(string: arguments))?.command.array.map(\.string) {
+                                            arguments = "\"\(parsedArguments.joined(separator: " "))\""
+                                        }
+                                    } else {
+                                        // try to parse the arguments as JSON
+                                        if let parsedArguments = try? AnyJSON(string: arguments) {
+                                            if let input = parsedArguments.input.optionalString {
+                                                arguments = "\n\(input)\n"
+                                            } else {
+                                                arguments = "\"\(parsedArguments)\""
+                                            }
+                                        }
+                                    }
+                                    print("--- 🛠️ tool call \(toolCall.id.string) (\(type)) start")
+                                    print(arguments)
+                                    print("--- 🛠️ tool call \(toolCall.id.string) (\(type)) end")
+                                }
                             } else {
-                                print("\(message.content.string)\n")
+                                print("🔴 JSON: \(message)\n")
                             }
                         }
                     }
@@ -256,8 +281,19 @@ class OllamaLogger {
                                 if let parsedArguments = (try? AnyJSON(string: arguments))?.command.array.map(\.string) {
                                     arguments = "\"\(parsedArguments.joined(separator: " "))\""
                                 }
+                            } else {
+                                // try to parse the arguments as JSON
+                                if let parsedArguments = try? AnyJSON(string: arguments) {
+                                    if let input = parsedArguments.input.optionalString {
+                                        arguments = "\n\(input)\n"
+                                    } else {
+                                        arguments = "\"\(parsedArguments)\""
+                                    }
+                                }
                             }
-                            print("🛠️ tool call \(toolCall.id.string): \(type)  \(arguments)")
+                            print("--- 🛠️ tool call \(toolCall.id.string) (\(type)) start")
+                            print(arguments)
+                            print("--- 🛠️ tool call \(toolCall.id.string) (\(type)) end")
                         }
                     } else if let reasoning = jsonObject.choices.first?.delta.reasoning.optionalString {
                         setOutputMode(.reasoning)
