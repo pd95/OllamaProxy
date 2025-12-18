@@ -35,7 +35,7 @@ struct ProxyService: LifecycleHandler {
             body: req.body.data
         )
 
-        // Preparing headers (whitout "Accept-Encoding")
+        // Preparing headers (without "Accept-Encoding")
         var requestHeaders: HTTPHeaders = req.headers
         requestHeaders.remove(name: .acceptEncoding)
 
@@ -97,7 +97,7 @@ struct ProxyService: LifecycleHandler {
 
         let response = Response(status: responseHead.status, headers: headers)
 
-        // If the transimission is chunked, we have to gather all parts as an async body stream
+        // If the transmission is chunked, we have to gather all parts as an async body stream
         if isChunked {
             response.body = .init(asyncStream: { [delegateStream = delegate.stream] writer in
                 do {
