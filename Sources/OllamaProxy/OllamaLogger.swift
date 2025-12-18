@@ -13,6 +13,18 @@ extension HTTPMediaType {
     static let ndjson = HTTPMediaType(type: "application", subType: "x-ndjson", parameters: ["charset": "utf-8"])
 }
 
+enum StreamOutputMode: CustomStringConvertible {
+    case none, reasoning, response
+
+    var description: String {
+        switch self {
+        case .none: return "None"
+        case .reasoning: return "Reasoning"
+        case .response: return "Response"
+        }
+    }
+}
+
 class OllamaLogger {
 
     static let logger = {
@@ -28,6 +40,7 @@ class OllamaLogger {
     private var contentType: HTTPMediaType = .plainText
     private var partialBuffer = ByteBuffer()
     private var needsNewline: Bool = false
+    private var streamMode: StreamOutputMode = .none
 
     init(method: String, uri: String) {
         self.method = method
@@ -46,6 +59,13 @@ class OllamaLogger {
             }
         }
         Swift.print(string, terminator: terminator)
+    }
+
+    private func setOutputMode(_ mode: StreamOutputMode) {
+        guard streamMode != mode else { return }
+        streamMode = mode
+        print("")
+        print("--- \(mode.description): ")
     }
 
     func log(request: ReplayableHTTPRequest) {
@@ -219,8 +239,10 @@ class OllamaLogger {
                             print("🛠️ tool call \(toolCall.id.string): \(type)  \(arguments)")
                         }
                     } else if let reasoning = jsonObject.choices.first?.delta.reasoning.optionalString {
+                        setOutputMode(.reasoning)
                         print(reasoning, terminator: "")
                     } else if let content = jsonObject.choices.first?.delta.content.optionalString {
+                        setOutputMode(.response)
                         print(content, terminator: "")
                     } else {
                         Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
@@ -261,17 +283,21 @@ class OllamaLogger {
                     }
                 } else if url == "/api/generate" {
                     if let content = jsonObject.thinking.optionalString {
+                        setOutputMode(.reasoning)
                         print(content, terminator: "")
                     }
-                    if let content = jsonObject.response.optionalString {
+                    if let content = jsonObject.response.optionalString, content.isEmpty == false  {
+                        setOutputMode(.response)
                         print(content, terminator: "")
                     }
                 } else if url == "/api/chat" {
                     let message = jsonObject.message
                     if let content = message.thinking.optionalString {
+                        setOutputMode(.reasoning)
                         print(content, terminator: "")
                     }
-                    if let content = message.content.optionalString {
+                    if let content = message.content.optionalString, content.isEmpty == false {
+                        setOutputMode(.response)
                         print(content, terminator: "")
                     }
                 } else {
