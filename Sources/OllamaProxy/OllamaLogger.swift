@@ -204,21 +204,38 @@ class OllamaLogger {
             if isRequest {
                 let model = jsonObject.model.optionalString.map({ " model: \($0)" }) ?? ""
                 isStreaming = jsonObject.stream.bool
-                print("📩 --- \(url)\(model)\(isStreaming ? " (streaming)" : "") ---")
+                print("--- 📩 \(url)\(model)\(isStreaming ? " (streaming)" : "") ---")
                 if let prompt = jsonObject.prompt.optionalString {
                     print(prompt)
-                } else if let message = jsonObject.messages.array.last {
-                    let role = message.role.string
-                    let content = message.content.string
-                    if role == "tool" {
-                        print("🛠️ tool call output (\(message.tool_call_id.string)) -------------------- 8< --------------------")
-                        let dict = (try? AnyJSON(string: content))?.dictionary ?? [:]
-                        for (key, value) in dict {
-                            print("\(key): \(value.optionalString ?? "n/a")")
+
+                } else if let messages: [AnyJSON] = jsonObject.messages.optionalArray {
+                    // process all messages
+                    for (index, message) in messages.enumerated() {
+                        let role = message.role.optionalString ?? "(no role)"
+                        print("--- Message \(index + 1): \(role) ---")
+                        if role == "tool" {
+                            let content = message.content.string
+                            print("🛠️ tool call output (\(message.tool_call_id.string)) -------------------- 8< --------------------")
+                            let dict = (try? AnyJSON(string: content))?.dictionary ?? [:]
+                            for (key, value) in dict {
+                                print("\(key): \(value.optionalString ?? "n/a")")
+                            }
+                            print("🛠️ (\(message.tool_call_id.string)) --------------------8<--------------------")
+                        } else {
+                            if let content = message.content.optionalArray {
+                                for entry in content {
+                                    let type = entry.type.string
+                                    if type == "text" {
+                                        print(entry.text.string)
+                                    } else {
+                                        Self.logger.warning("unknown content type: \(type)")
+                                    }
+                                    print("")
+                                }
+                            } else {
+                                print("\(message.content.string)\n")
+                            }
                         }
-                        print("🛠️ (\(message.tool_call_id.string)) --------------------8<--------------------")
-                    } else {
-                        print("\(role): \(content)\n")
                     }
                 } else {
                     Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
@@ -271,11 +288,14 @@ class OllamaLogger {
             if isRequest {
                 let model = jsonObject.model.optionalString.map({ " model: \($0)" }) ?? ""
                 isStreaming = jsonObject.stream.bool
-                print("📩 --- \(url)\(model)\(isStreaming ? " (streaming)" : "") ---")
-                if let message = jsonObject.messages.array.last(where: { $0.content.string.isEmpty == false }) {
-                    let role = message.role.string
-                    let content = message.content.string
-                    print("\(role): \(content)\n")
+                print("--- 📩 \(url)\(model)\(isStreaming ? " (streaming)" : "") ---")
+                if let messages: [AnyJSON] = jsonObject.messages.optionalArray {
+                    for (index, message) in messages.enumerated() {
+                        let role = message.role.optionalString ?? "(no role)"
+                        print("--- Message \(index + 1): \(role) ---")
+                        let content = message.content.optionalString ?? ""
+                        print("\(content)\n")
+                    }
                 } else {
                     Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
                 }
