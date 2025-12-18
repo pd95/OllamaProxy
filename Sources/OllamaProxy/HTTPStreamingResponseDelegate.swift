@@ -19,7 +19,7 @@ final class HTTPStreamingResponseDelegate: HTTPClientResponseDelegate {
 
     let stream: AsyncThrowingStream<ResponseEvent, any Error>
 
-    private var continuation: AsyncThrowingStream<ResponseEvent, any Error>.Continuation
+    private let continuation: AsyncThrowingStream<ResponseEvent, any Error>.Continuation
 
     init() {
         let (stream, continuation) = AsyncThrowingStream<ResponseEvent, any Error>.makeStream()
