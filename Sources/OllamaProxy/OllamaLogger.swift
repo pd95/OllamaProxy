@@ -182,10 +182,11 @@ class OllamaLogger {
         }
 
         guard event.data != "[DONE]" else { return }
-        if let jsonObject = try? AnyJSON(string: event.data) {
+        do {
+            let jsonObject = try AnyJSON(string: event.data)
             log(json: jsonObject, underLyingBuffer: buffer, isRequest: isRequest)
-        } else {
-            Self.logger.error("Invalid JSON object: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "n/a")")
+        } catch {
+            Self.logger.error("Invalid JSON object: \(error)\nin\n\(buffer.getString(at: 0, length: buffer.readableBytes) ?? "n/a")")
         }
     }
 
@@ -262,59 +263,148 @@ class OllamaLogger {
                             }
                         }
                     }
-                } else {
-                    Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
-                }
-            } else {
-                let object = jsonObject.object.string
 
-                if object == "list", let models = jsonObject.data.optionalArray {
-                    print("\(models.count) models returned")
-
-                } else if object == "chat.completion.chunk" {
-                    if let toolCalls = jsonObject.choices.first?.delta.tool_calls.optionalArray {
-                        print("Tool calls")
-                        for toolCall in toolCalls {
-                            let type = toolCall.function.name.string
-                            var arguments = toolCall.function.arguments.string
-                            if type == "shell" {
-                                if let parsedArguments = (try? AnyJSON(string: arguments))?.command.array.map(\.string) {
-                                    arguments = "\"\(parsedArguments.joined(separator: " "))\""
-                                }
-                            } else {
-                                // try to parse the arguments as JSON
-                                if let parsedArguments = try? AnyJSON(string: arguments) {
-                                    if let input = parsedArguments.input.optionalString {
-                                        arguments = "\n\(input)\n"
+                } else if url.hasSuffix("responses") {
+                    if let instructions = jsonObject.instructions.optionalString {
+                        print(instructions)
+                    }
+                    if let items: [AnyJSON] = jsonObject.input.optionalArray {
+                        // process all messages
+                        for (index, item) in items.enumerated() {
+                            let type = item.type.optionalString ?? "(no type)"
+                            let role = item.role.optionalString ?? "(no role)"
+                            print("--- \(index + 1) \(type): \(role) ---")
+                            for content in item.content {
+                                if let type = content.type.optionalString {
+                                    if type == "input_text" || type == "output_text"  {
+                                        print(content.text.string)
                                     } else {
-                                        arguments = "\"\(parsedArguments)\""
+                                        print("🔴 unknown content type \(type)")
                                     }
                                 }
                             }
-                            print("--- 🛠️ tool call \(toolCall.id.string) (\(type)) start")
-                            print(arguments)
-                            print("--- 🛠️ tool call \(toolCall.id.string) (\(type)) end")
+                            for summary in item.summary {
+                                if let type = summary.type.optionalString {
+                                    if type == "summary_text" {
+                                        print(summary.text.string)
+                                    } else {
+                                        print("🔴 unknown summary type \(type)")
+                                    }
+                                }
+                            }
+                            if type == "message" || type == "reasoning" {
+                                // already handled with above stuff.
+                            } else if type == "function_call" {
+                                let callType = item.name.string
+                                var arguments = item.arguments.string
+                                if callType == "shell" {
+                                    if let parsedArguments = (try? AnyJSON(string: arguments))?.command.array.map(\.string) {
+                                        arguments = "\"\(parsedArguments.joined(separator: " "))\""
+                                    }
+                                } else {
+                                    // try to parse the arguments as JSON
+                                    if let parsedArguments = try? AnyJSON(string: arguments) {
+                                        if let input = parsedArguments.input.optionalString {
+                                            arguments = "\n\(input)\n"
+                                        } else {
+                                            arguments = "\"\(parsedArguments)\""
+                                        }
+                                    }
+                                }
+                                print("--- 🛠️ tool call \(item.call_id.string) (\(callType)): \(arguments)")
+                            } else if type == "function_call_output" {
+                                print("🛠️ tool call output (\(item.call_id.string)) -------------------- 8< --------------------")
+                                if let outputObject = try? AnyJSON(string: item.output.string) {
+                                    if let exitCode = outputObject.metadata.exit_code.optionalInt {
+                                        print("exit code \(exitCode)")
+                                    }
+                                    print(outputObject.output.string)
+                                } else {
+                                    print(item.output.string)
+                                }
+                                print("🛠️ (\(item.call_id.string)) --------------------8<--------------------")
+                            } else {
+                                print("🔴 JSON: \(item)\n")
+                            }
                         }
-                    } else if let reasoning = jsonObject.choices.first?.delta.reasoning.optionalString {
-                        setOutputMode(.reasoning)
-                        print(reasoning, terminator: "")
-                    } else if let content = jsonObject.choices.first?.delta.content.optionalString {
-                        setOutputMode(.response)
-                        print(content, terminator: "")
+                    }
+                } else {
+                    Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
+                }
+
+            } else {
+                if let object = jsonObject.object.optionalString {
+
+                    if object == "list", let models = jsonObject.data.optionalArray {
+                        print("\(models.count) models returned")
+
+                    } else if object == "chat.completion.chunk" {
+                        if let toolCalls = jsonObject.choices.first?.delta.tool_calls.optionalArray {
+                            print("Tool calls")
+                            for toolCall in toolCalls {
+                                let type = toolCall.function.name.string
+                                var arguments = toolCall.function.arguments.string
+                                if type == "shell" {
+                                    if let parsedArguments = (try? AnyJSON(string: arguments))?.command.array.map(\.string) {
+                                        arguments = "\"\(parsedArguments.joined(separator: " "))\""
+                                    }
+                                } else {
+                                    // try to parse the arguments as JSON
+                                    if let parsedArguments = try? AnyJSON(string: arguments) {
+                                        if let input = parsedArguments.input.optionalString {
+                                            arguments = "\n\(input)\n"
+                                        } else {
+                                            arguments = "\"\(parsedArguments)\""
+                                        }
+                                    }
+                                }
+                                print("--- 🛠️ tool call \(toolCall.id.string) (\(type)) start")
+                                print(arguments)
+                                print("--- 🛠️ tool call \(toolCall.id.string) (\(type)) end")
+                            }
+                        } else if let reasoning = jsonObject.choices.first?.delta.reasoning.optionalString {
+                            setOutputMode(.reasoning)
+                            print(reasoning, terminator: "")
+                        } else if let content = jsonObject.choices.first?.delta.content.optionalString {
+                            setOutputMode(.response)
+                            print(content, terminator: "")
+                        } else {
+                            Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
+                        }
+                    } else if object == "chat.completion" {
+                        if let text = jsonObject.choices.first?.message.content.string {
+                            print(text)
+                        } else {
+                            Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
+                        }
+                    } else if object == "text_completion" {
+                        if let text = jsonObject.choices.first?.text.string {
+                            print(text)
+                        } else {
+                            Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
+                        }
                     } else {
                         Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
                     }
-                } else if object == "chat.completion" {
-                    if let text = jsonObject.choices.first?.message.content.string {
-                        print(text)
+                } else if let type = jsonObject.type.optionalString {
+                    if type == "response.created" || type == "response.in_progress" {
+                        // ignoring
+                    } else if type == "response.reasoning_summary_text.delta" || type == "response.output_text.delta", let text = jsonObject.delta.optionalString {
+                        print(text, terminator: "")
+                    } else if type == "response.reasoning_summary_text.done" || type == "response.output_text.done" || type == "response.output_item.done" {
+                        print("")
+                    } else if type == "response.output_item.added" {
+                        print(type)
+                        if let type = jsonObject.item.type.optionalString {
+                            if type == "function_call" {
+                                print("--- 🛠️ tool call \(jsonObject.item.call_id.string) (\(jsonObject.item.name.string)) start")
+                            } else {
+                                print("\(type): ")
+                            }
+                        }
                     } else {
-                        Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
-                    }
-                } else if object == "text_completion" {
-                    if let text = jsonObject.choices.first?.text.string {
-                        print(text)
-                    } else {
-                        Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
+                        print(type)
+                        //Self.logger.debug("\(type) unsupported: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
                     }
                 } else {
                     Self.logger.debug("unknown json: \(buffer.getString(at: 0, length: buffer.readableBytes) ?? "")")
