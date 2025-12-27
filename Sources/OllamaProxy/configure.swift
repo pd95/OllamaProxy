@@ -7,7 +7,9 @@ public func configure(_ app: Application) async throws {
     app.http.server.configuration.port = Environment.get("PORT").flatMap(Int.init) ?? 8080
 
     // Create & register ProxyService lifecycle handler
-    let proxy = ProxyService(app: app, baseURL: Environment.get("TARGET_URL") ?? "http://localhost:11434")
+    let targetURL = Environment.get("TARGET_URL") ?? "http://localhost:11434"
+    let writeFile = Environment.get("WRITE_FILE").flatMap(Bool.init) ?? false
+    let proxy = ProxyService(app: app, baseURL: targetURL, writeFile: writeFile)
     app.lifecycle.use(proxy)
 
     // Compression

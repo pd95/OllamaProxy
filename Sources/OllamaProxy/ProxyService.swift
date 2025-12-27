@@ -7,9 +7,10 @@ struct ProxyService: LifecycleHandler {
     let baseURL: String
     var writeFile = false
 
-    init(app: Application, baseURL: String = "http://localhost:11434") {
+    init(app: Application, baseURL: String = "http://localhost:11434", writeFile: Bool = false) {
         self.httpClient = HTTPClient(eventLoopGroupProvider: .shared(app.eventLoopGroup))
         self.baseURL = baseURL
+        self.writeFile = writeFile
     }
 
     func willBoot(_ app: Application) throws {
