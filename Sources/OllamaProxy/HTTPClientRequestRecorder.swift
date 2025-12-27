@@ -56,4 +56,8 @@ final actor HTTPClientRequestRecorder{
             logger.log(fullResponse: response)
         }
     }
+
+    func writeRequestAndResponseData() throws {
+        try BodyWriter.write(request: request)
+    }
 }

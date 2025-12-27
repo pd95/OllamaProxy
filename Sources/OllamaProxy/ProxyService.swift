@@ -90,6 +90,9 @@ struct ProxyService: LifecycleHandler {
                     } catch {
                         logger.error("Failed to write file: \(error.localizedDescription)")
                     }
+
+                    try await recorder.writeRequestAndResponseData()
+
                 }
             } catch {
                 logger.error("Request failed: \(error)")
