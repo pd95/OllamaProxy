@@ -5,12 +5,24 @@ import Vapor
 struct ProxyService: LifecycleHandler {
     let httpClient: HTTPClient
     let baseURL: String
-    var writeFile = false
+    var persistenceDirectory: String?
 
     init(app: Application, baseURL: String = "http://localhost:11434", writeFile: Bool = false) {
         self.httpClient = HTTPClient(eventLoopGroupProvider: .shared(app.eventLoopGroup))
         self.baseURL = baseURL
-        self.writeFile = writeFile
+        if writeFile {
+            let path = app.directory.workingDirectory.appending("Data")
+            do {
+                var isDirectory: ObjCBool = false
+                if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) == false {
+                    try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: false)
+                }
+                persistenceDirectory = path
+            } catch {
+                app.logger.error("Unable to create persistence directory: \(error.localizedDescription)")
+            }
+        }
+        app.logger.info("Persisting data to \(persistenceDirectory ?? "nil")")
     }
 
     func willBoot(_ app: Application) throws {
@@ -75,14 +87,14 @@ struct ProxyService: LifecycleHandler {
                 }
 
 
-                if writeFile {
+                if let persistenceDirectory {
                     do {
                         let data = try JSONEncoder().encode(replayableRequest)
 
-                        let tempDirectoryURL = FileManager.default.temporaryDirectory
+                        let targetFolder = URL(filePath: persistenceDirectory)
                         let timestamp = Date.now.formatted(.iso8601.timeZoneSeparator(.omitted).dateTimeSeparator(.standard).timeSeparator(.omitted))
-                        let fileName = "OllamaProxy-request-\(timestamp).json"
-                        let fileURL = tempDirectoryURL.appendingPathComponent(fileName)
+                        let fileName = "ReplayableRequest-\(timestamp).json"
+                        let fileURL = targetFolder.appendingPathComponent(fileName)
 
                         // Write data to the file at the specified URL
                         try data.write(to: fileURL)
@@ -92,7 +104,7 @@ struct ProxyService: LifecycleHandler {
                         logger.error("Failed to write file: \(error.localizedDescription)")
                     }
 
-                    try await recorder.writeRequestAndResponseData()
+                    try await recorder.writeRequestAndResponseData(to: persistenceDirectory)
 
                 }
             } catch {

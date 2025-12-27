@@ -57,7 +57,7 @@ final actor HTTPClientRequestRecorder{
         }
     }
 
-    func writeRequestAndResponseData() throws {
-        try BodyWriter.write(request: request)
+    func writeRequestAndResponseData(to path: String) throws {
+        try BodyWriter.write(request: request, to: path)
     }
 }

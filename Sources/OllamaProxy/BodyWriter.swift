@@ -14,18 +14,18 @@ struct BodyWriter {
         case writeFailure(String, any Swift.Error)
     }
 
-    static func write(request: ReplayableHTTPRequest) throws {
+    static func write(request: ReplayableHTTPRequest, to path: String) throws {
         let logger = Logger(label: "BodyWriter")
         let timestamp = Date.now.formatted(.iso8601.timeZoneSeparator(.omitted).dateTimeSeparator(.space).dateSeparator(.omitted).timeSeparator(.omitted))
             .replacingOccurrences(of: " ", with: "-")
             .replacingOccurrences(of: "Z", with: "")
         let cleanURL = request.url.dropFirst().replacing("/", with: "_")
-        let reqFileName = "OllamaProxy-\(cleanURL)-req-\(timestamp).json"
-        let tempDirectoryURL = URL.currentDirectory()
+        let reqFileName = "\(cleanURL)-req-\(timestamp).json"
+        let targetFolder = URL(filePath: path)
 
         // Write request body data to a file
         if let body = request.body {
-            let fileURL = tempDirectoryURL.appendingPathComponent(reqFileName)
+            let fileURL = targetFolder.appendingPathComponent(reqFileName)
             let data = Data(buffer: body)
             do {
                 try data.write(to: fileURL)
@@ -41,8 +41,8 @@ struct BodyWriter {
                 writeBuf.writeImmutableBuffer(chunk)
             }
 
-            let responseFileName = "OllamaProxy-\(cleanURL)-rsp-\(timestamp).json"
-            let fileURL = tempDirectoryURL.appendingPathComponent(responseFileName)
+            let responseFileName = "\(cleanURL)-rsp-\(timestamp).json"
+            let fileURL = targetFolder.appendingPathComponent(responseFileName)
             let data = Data(buffer: buffer)
             do {
                 try data.write(to: fileURL)
